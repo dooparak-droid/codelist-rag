@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codelist-rag"
+version = "0.1.0"
+description = "Retrieval-augmented clinical codelist generation for SNOMED-CT with fabrication verification"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Emmanuel" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+
+dependencies = [
+    "sentence-transformers>=2.5.0",
+    "chromadb>=0.4.22",
+    "rank-bm25>=0.2.2",
+    "chatlas>=0.1.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "pydantic>=2.6.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+]
+eval = [
+    "inspect-ai>=0.3.249",
+    "pandas>=2.0.0",
+]
+
+[project.scripts]
+codelist-rag = "codelist_rag.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

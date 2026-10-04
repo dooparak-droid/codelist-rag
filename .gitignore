@@ -1,0 +1,47 @@
+# Environments and secrets
+.env
+*.env
+.venv/
+venv/
+env/
+thesis-env/
+
+# Python bytecode and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Terminology, proprietary data, and reference sets (TRUD licence protection)
+data/
+*.zip
+*.tar.gz
+*.txt
+snomed/
+SnomedCT_*
+*refset*
+*gold_standard*
+*.csv
+
+# Vector databases and serialized retrieval indexes
+chroma_db/
+*.chroma
+*.pkl
+bm25_index.pkl
+*.sqlite3
+
+# Evaluation logs and intermediate benchmark outputs
+inspect_logs/
+inspect_results/
+*.eval
+outputs/
+logs/
+
+# Operating system files
+.DS_Store
+Thumbs.db

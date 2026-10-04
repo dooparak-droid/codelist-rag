@@ -1,0 +1,12 @@
+[
+  {"code": "99900001", "term": "Synthetic mild airway reactivity"},
+  {"code": "99900002", "term": "Fictitious acute bronchospasm"},
+  {"code": "99900003", "term": "Mock chronic obstructive respiratory disease"},
+  {"code": "99900004", "term": "Synthetic exercise-induced asthma"},
+  {"code": "99900005", "term": "Fictitious allergic rhinitis"},
+  {"code": "99900006", "term": "Mock respiratory tract inflammation"},
+  {"code": "99900007", "term": "Synthetic type 2 diabetes mellitus"},
+  {"code": "99900008", "term": "Fictitious diabetic retinopathy"},
+  {"code": "99900009", "term": "Mock essential hypertension"},
+  {"code": "99900010", "term": "Synthetic atrial fibrillation"}
+]
