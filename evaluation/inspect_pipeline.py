@@ -464,7 +464,7 @@ def _score_codes_against_gold(codes, gold_codes, retrieval_type, retrieved_set, 
     # Converting to a set here is for METRIC COMPUTATION only (mirrors
     # evaluate.py's own compute_metrics()) — the raw `codes` list, with any
     # duplicates intact, is what the caller stores/preserves elsewhere.
-    # Codes are never deduplicated before this point (Julian's instruction);
+    # Codes are never deduplicated before this point (explicit supervisor instruction);
     # only the precision/recall/F1 math is set-based, same as evaluate.py.
     generated_set = set(c["code"] for c in codes)
     metrics = _compute_metrics(generated_set, gold_codes)
@@ -797,7 +797,7 @@ def derive_csvs(log, output_dir):
     )
     pooled_df = pooled_df.merge(counts_mean, on=group_cols)
 
-    # ── Subtype-level recall (Emmanuel's categorised gold standards) ──
+    # ── Subtype-level recall (externally categorised gold standards) ──
     # Independent load-and-join from the categorised CSVs (pc.GOLD_STANDARD_FILES
     # / pc.GOLD_STANDARD_DIR — the same 7-condition mapping already used
     # elsewhere in the pipeline; dmtype2audit_cod_categorised.csv has no

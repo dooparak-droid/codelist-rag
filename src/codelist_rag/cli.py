@@ -23,10 +23,10 @@ def build_index_cmd(args: argparse.Namespace) -> None:
         store = TerminologyStore.from_json(args.terminology_json)
     elif args.csv:
         store = TerminologyStore.from_csv(args.csv, code_col=args.code_col, term_col=args.term_col)
-    elif args.rf2_concept and args.rf2_description:
-        store = TerminologyStore.from_rf2(args.rf2_concept, args.rf2_description)
+    elif args.rf2_description:
+        store = TerminologyStore.from_rf2(args.rf2_description)
     else:
-        print("Error: Must specify --terminology-json, --csv, or both --rf2-concept and --rf2-description")
+        print("Error: Must specify --terminology-json, --csv, or --rf2-description")
         sys.exit(1)
 
     print(f"Loaded {len(store)} concepts. Building indexes...")
@@ -53,6 +53,9 @@ def generate_cmd(args: argparse.Namespace) -> None:
     terminology = None
     if args.terminology_json and Path(args.terminology_json).exists():
         terminology = TerminologyStore.from_json(args.terminology_json)
+    elif retriever is not None:
+        # Same rule as the API: check codes against the concepts in the loaded index
+        terminology = TerminologyStore.from_chroma(retriever.collection)
 
     pipeline = CodelistPipeline(retriever=retriever, terminology=terminology)
     result = pipeline.generate(
@@ -126,8 +129,10 @@ def main() -> None:
     build_p = subparsers.add_parser("build-index", help="Build ChromaDB and BM25 retrieval indexes")
     build_p.add_argument("--terminology-json", type=str, help="Path to synthetic or JSON concepts file")
     build_p.add_argument("--csv", type=str, help="Path to clean descriptions CSV")
-    build_p.add_argument("--rf2-concept", type=str, help="Path to RF2 Concept Snapshot file")
-    build_p.add_argument("--rf2-description", type=str, help="Path to RF2 Description Snapshot file")
+    build_p.add_argument(
+        "--rf2-description", type=str, nargs="+",
+        help="Path(s) to RF2 Description Snapshot file(s), International first, then any national extension",
+    )
     build_p.add_argument("--code-col", type=str, default="code", help="Code column in CSV")
     build_p.add_argument("--term-col", type=str, default="term", help="Term column in CSV")
     build_p.add_argument("--chroma-path", type=str, default="./data/chroma_db", help="ChromaDB storage dir")
@@ -142,7 +147,7 @@ def main() -> None:
     gen_p.add_argument("--no-rag", action="store_true", help="Disable retrieval-augmented generation")
     gen_p.add_argument("--n-results", type=int, default=400, help="Number of retrieved candidate concepts")
     gen_p.add_argument("--provider", type=str, default="openai", choices=["openai", "google", "anthropic", "ollama"])
-    gen_p.add_argument("--model", type=str, default="gpt-4o-mini", help="LLM model identifier")
+    gen_p.add_argument("--model", type=str, default="gpt-5.5", help="LLM model identifier")
     gen_p.add_argument("--base-url", type=str, default=None, help="Base URL for custom/Ollama endpoint")
     gen_p.add_argument("--chroma-path", type=str, default="./data/chroma_db", help="ChromaDB storage dir")
     gen_p.add_argument("--bm25-path", type=str, default="./data/bm25_index.pkl", help="BM25 index path")

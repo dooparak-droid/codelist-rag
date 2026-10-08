@@ -28,7 +28,7 @@ EXPOSE 8000
 # Declare environment variables for index and fixture paths
 ENV CHROMA_PATH=/app/data/chroma_db
 ENV BM25_PATH=/app/data/bm25_index.pkl
-ENV TERMINOLOGY_JSON=/app/tests/fixtures/synthetic_terminology.json
+ENV TERMINOLOGY_RELEASE="not recorded"
 
 # Run FastAPI service with Uvicorn
 CMD ["uvicorn", "codelist_rag.api:app", "--host", "0.0.0.0", "--port", "8000"]

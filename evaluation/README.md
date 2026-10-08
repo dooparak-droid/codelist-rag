@@ -14,8 +14,9 @@ The evaluation suite uses **Inspect AI** (`inspect_pipeline.py`) to run factoria
 ## Running the Benchmarks
 
 To run the evaluation suite on your own licensed SNOMED-CT release:
-1. Ensure your local ChromaDB and BM25 indexes are built (`codelist-rag build-index`).
-2. Place NHS Digital reference set CSV files in `data/categorised_gold_standards/`.
+0. Install the evaluation extras: `pip install -e ".[eval]"`. Run from the repository root, since `pipeline_core.py` uses relative data paths.
+1. Build the indexes at the paths `pipeline_core.py` expects: `data/snomed/chroma_db` and `data/snomed/bm25_index.pkl` (`codelist-rag build-index --chroma-path data/snomed/chroma_db --bm25-path data/snomed/bm25_index.pkl ...`).
+2. Place the categorised NHS Digital reference set CSVs (file names are listed in `GOLD_STANDARD_FILES` in `pipeline_core.py`) in `data/categorised_gold_standards/`. These are not in the repository.
 3. Set your provider API key (`OPENAI_API_KEY` or `GOOGLE_API_KEY`) or configure Ollama for local models.
 4. Execute `inspect_pipeline.py`:
    ```bash

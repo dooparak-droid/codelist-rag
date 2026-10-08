@@ -10,7 +10,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from codelist_rag.generate import CodelistPipeline
+from codelist_rag import __version__
+from codelist_rag.generate import DEFAULT_MODEL, DEFAULT_PROVIDER, CodelistPipeline
 from codelist_rag.retrieve import HybridRetriever
 from codelist_rag.schemas import CodelistRequest, CodelistResponse, EvaluationRequest, EvaluationResponse
 from codelist_rag.score import evaluate_codelist
@@ -19,7 +20,11 @@ from codelist_rag.terminology import TerminologyStore
 # Configurable storage paths via environment variables
 CHROMA_PATH = os.getenv("CHROMA_PATH", "./data/chroma_db")
 BM25_PATH = os.getenv("BM25_PATH", "./data/bm25_index.pkl")
-TERMINOLOGY_JSON = os.getenv("TERMINOLOGY_JSON", "tests/fixtures/synthetic_terminology.json")
+TERMINOLOGY_JSON = os.getenv("TERMINOLOGY_JSON")  # optional; used only when no index is loaded
+TERMINOLOGY_RELEASE = os.getenv("TERMINOLOGY_RELEASE", "not recorded")
+
+# Environment variable each hosted provider needs; Ollama needs none
+API_KEY_VARS = {"openai": "OPENAI_API_KEY", "google": "GOOGLE_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
 
 # Global pipeline instance initialized on startup
 pipeline: CodelistPipeline | None = None
@@ -38,7 +43,14 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print(f"Warning: Could not load HybridRetriever on startup: {e}")
 
-    if Path(TERMINOLOGY_JSON).exists():
+    # With an index loaded, the fabrication check uses the index's own concept IDs.
+    # A JSON file is used only when there is no index.
+    if retriever is not None:
+        try:
+            terminology = TerminologyStore.from_chroma(retriever.collection)
+        except Exception as e:
+            print(f"Warning: Could not load TerminologyStore from index: {e}")
+    elif TERMINOLOGY_JSON and Path(TERMINOLOGY_JSON).exists():
         try:
             terminology = TerminologyStore.from_json(TERMINOLOGY_JSON)
         except Exception as e:
@@ -71,6 +83,10 @@ def health_check():
     has_terminology = pipeline is not None and pipeline.terminology is not None
     return {
         "status": "healthy",
+        "version": __version__,
+        "default_model": f"{DEFAULT_PROVIDER}:{DEFAULT_MODEL}",
+        "terminology_release": TERMINOLOGY_RELEASE,
+        "terminology_concepts": len(pipeline.terminology) if has_terminology else 0,
         "retriever_loaded": has_retriever,
         "terminology_loaded": has_terminology,
         "chroma_path": CHROMA_PATH,
@@ -82,12 +98,19 @@ def health_check():
 def generate_codelist(req: CodelistRequest):
     """
     Generate a SNOMED-CT codelist for a clinical condition.
-    Retreats gracefully if index is unbuilt or model response fails to parse.
+    Returns 503 if the index is unbuilt and 502 if the model response cannot be parsed.
     """
     if req.use_rag and (pipeline is None or pipeline.retriever is None):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Retrieval index not loaded. Run 'codelist-rag build-index' before making RAG requests.",
+        )
+
+    key_var = API_KEY_VARS.get(req.provider)
+    if key_var and not os.getenv(key_var):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"{key_var} is not set. Set it in the environment or a .env file to use provider '{req.provider}'.",
         )
 
     assert pipeline is not None
@@ -107,7 +130,7 @@ def generate_codelist(req: CodelistRequest):
             detail=f"Model failed to generate a valid codelist: {result['error']}",
         )
 
-    return result
+    return {**result, "version": __version__}
 
 
 @app.post("/evaluate", response_model=EvaluationResponse, status_code=status.HTTP_200_OK)

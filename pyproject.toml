@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "Emmanuel" }
+    { name = "Emmanuel Oparaku" }
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -22,7 +22,9 @@ dependencies = [
     "sentence-transformers>=2.5.0",
     "chromadb>=0.4.22",
     "rank-bm25>=0.2.2",
-    "chatlas>=0.1.0",
+    "inspect-ai>=0.3.249",
+    "openai>=2.45.0",
+    "pandas>=2.0.0",
     "fastapi>=0.110.0",
     "uvicorn>=0.28.0",
     "pydantic>=2.6.0",
@@ -35,8 +37,10 @@ dev = [
     "httpx>=0.27.0",
 ]
 eval = [
-    "inspect-ai>=0.3.249",
-    "pandas>=2.0.0",
+    "chatlas>=0.1.0",
+]
+google = [
+    "google-genai",
 ]
 
 [project.scripts]

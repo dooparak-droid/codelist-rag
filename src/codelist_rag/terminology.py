@@ -39,24 +39,51 @@ class TerminologyStore:
         return cls(concepts)
 
     @classmethod
-    def from_rf2(cls, concept_file: str | Path, description_file: str | Path) -> "TerminologyStore":
+    def from_rf2(cls, description_files: str | Path | list[str | Path]) -> "TerminologyStore":
         """
-        Load active concepts and active descriptions from raw SNOMED-CT RF2 files.
-        Only keeps entries where active == 1.
+        Load concepts from one or more RF2 Description Snapshot files, as in the thesis
+        corpus build: keep descriptions whose own active flag is 1, keep synonyms only
+        (type 900000000000013009, which excludes fully specified names), and keep the
+        first synonym found for each concept. Files are read in the order given, so
+        list the International file before any national extension.
+
+        The filter is on the description's active flag, not the concept's. A concept
+        retired from SNOMED-CT can therefore remain in the corpus while one of its
+        descriptions is still marked active.
         """
-        concept_df = pd.read_csv(concept_file, sep="\t", dtype={"id": str, "active": int})
-        active_concept_ids = set(concept_df[concept_df["active"] == 1]["id"])
+        if isinstance(description_files, (str, Path)):
+            description_files = [description_files]
 
-        desc_df = pd.read_csv(
-            description_file,
-            sep="\t",
-            dtype={"conceptId": str, "term": str, "active": int},
-            usecols=["conceptId", "term", "active"],
-        )
-        active_desc = desc_df[(desc_df["active"] == 1) & (desc_df["conceptId"].isin(active_concept_ids))]
+        concepts: dict[str, str] = {}
+        for file in description_files:
+            desc_df = pd.read_csv(
+                file,
+                sep="\t",
+                dtype={"conceptId": str, "term": str, "typeId": str, "active": int},
+                usecols=["conceptId", "term", "typeId", "active"],
+                quoting=3,
+            )
+            kept = desc_df[(desc_df["active"] == 1) & (desc_df["typeId"] == "900000000000013009")]
+            for concept_id, term in zip(kept["conceptId"], kept["term"]):
+                concepts.setdefault(concept_id, term)
+        return cls(concepts)
 
-        # Pick one term per conceptId (e.g. first active description)
-        concepts = active_desc.groupby("conceptId")["term"].first().to_dict()
+    @classmethod
+    def from_chroma(cls, collection, page_size: int = 50000) -> "TerminologyStore":
+        """
+        Load the concept IDs held in a ChromaDB collection, so that the
+        fabrication check uses exactly the terminology the retriever searches.
+        Only IDs are read; terms are left empty to keep memory use small.
+        """
+        concepts: dict[str, str] = {}
+        offset = 0
+        while True:
+            page = collection.get(include=[], limit=page_size, offset=offset)
+            ids = page["ids"]
+            if not ids:
+                break
+            concepts.update({str(i): "" for i in ids})
+            offset += len(ids)
         return cls(concepts)
 
     def get_term(self, code: str) -> str | None:
