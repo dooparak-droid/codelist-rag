@@ -35,3 +35,36 @@ jobs:
       - name: Run unit and integration tests
         run: |
           pytest --cov=codelist_rag tests/
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t codelist-rag .
+
+      - name: Build the synthetic fixture index inside the container
+        run: |
+          mkdir -p data
+          docker run --rm -v "$PWD/data:/app/data" codelist-rag \
+            codelist-rag build-index \
+            --terminology-json /app/tests/fixtures/synthetic_terminology.json \
+            --chroma-path /app/data/chroma_db \
+            --bm25-path /app/data/bm25_index.pkl
+
+      - name: Start the service and check /health
+        run: |
+          docker run -d --name svc -p 8000:8000 -v "$PWD/data:/app/data" codelist-rag
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/health > health.json && break
+            sleep 2
+          done
+          cat health.json
+          python3 -c "import json; d=json.load(open('health.json')); assert d['status']=='healthy' and d['retriever_loaded'] and d['terminology_concepts']==10, d"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs svc
