@@ -214,16 +214,26 @@ If the model's reply cannot be parsed after three attempts, `POST /codelist` ret
 
 ### Running in Docker
 
+One container runs the API (port 8000) and the browser page (port 8501).
+
 ```bash
 docker build -t codelist-rag .
 
 docker run -d \
-  -p 8000:8000 \
+  -p 8000:8000 -p 8501:8501 \
   -v $(pwd)/data:/app/data \
   -e OPENAI_API_KEY="your-api-key" \
   -e TERMINOLOGY_RELEASE="UK Edition 2026-05-06" \
   codelist-rag
 ```
+
+The part of `-p` before the colon is the port you use in your browser. The folder given to `-v` must contain `chroma_db` and `bm25_index.pkl`, as built in Step 1. The index is never copied into the image. To run the API alone, add `uvicorn codelist_rag.api:app --host 0.0.0.0 --port 8000` after the image name.
+
+### Using the browser page
+
+Open `http://localhost:8501`. Enter a condition, choose a provider, model and prompt, and press Generate. The page shows the codelist with codes that are not in the index highlighted in red, a filter for flagged codes only, and downloads as CSV or JSON. You can also upload a reference codelist (a CSV with a `code` column) to see precision, recall and F1. This scoring does not show retrieval and generation failures.
+
+Without Docker, start the API as above, then run `pip install -e ".[app]"` and `streamlit run app/streamlit_app.py`.
 
 ---
 

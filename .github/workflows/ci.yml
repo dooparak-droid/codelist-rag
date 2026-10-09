@@ -57,13 +57,21 @@ jobs:
 
       - name: Start the service and check /health
         run: |
-          docker run -d --name svc -p 8000:8000 -v "$PWD/data:/app/data" codelist-rag
+          docker run -d --name svc -p 8000:8000 -p 8501:8501 -v "$PWD/data:/app/data" codelist-rag
           for i in $(seq 1 30); do
             curl -sf http://localhost:8000/health > health.json && break
             sleep 2
           done
           cat health.json
           python3 -c "import json; d=json.load(open('health.json')); assert d['status']=='healthy' and d['retriever_loaded'] and d['terminology_concepts']==10, d"
+
+      - name: Check the Streamlit page is up
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8501/_stcore/health > ui.txt && break
+            sleep 2
+          done
+          test "$(cat ui.txt)" = "ok"
 
       - name: Show container logs on failure
         if: failure()
